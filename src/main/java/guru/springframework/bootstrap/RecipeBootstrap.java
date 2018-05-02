@@ -4,6 +4,7 @@ import guru.springframework.domain.*;
 import guru.springframework.repositories.CategoryRepository;
 import guru.springframework.repositories.RecipeRepository;
 import guru.springframework.repositories.UnitOfMeasureRepository;
+import guru.springframework.repositories.reactive.IngredientReactiveRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -14,6 +15,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Created by jt on 6/13/17.
@@ -24,12 +26,14 @@ public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEven
 
     private final CategoryRepository categoryRepository;
     private final RecipeRepository recipeRepository;
+    private final IngredientReactiveRepository ingredientReactiveRepository;
     private final UnitOfMeasureRepository unitOfMeasureRepository;
 
     public RecipeBootstrap(CategoryRepository categoryRepository,
-                           RecipeRepository recipeRepository, UnitOfMeasureRepository unitOfMeasureRepository) {
+                           RecipeRepository recipeRepository, IngredientReactiveRepository ingredientReactiveRepository, UnitOfMeasureRepository unitOfMeasureRepository) {
         this.categoryRepository = categoryRepository;
         this.recipeRepository = recipeRepository;
+        this.ingredientReactiveRepository = ingredientReactiveRepository;
         this.unitOfMeasureRepository = unitOfMeasureRepository;
     }
 
@@ -39,6 +43,7 @@ public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEven
         loadCategories();
         loadUom();
         recipeRepository.saveAll(getRecipes());
+        setIngredientsRecipeIds();
         log.error("Loading Bootstrap Data, Recipe count: " + recipeRepository.count());
     }
 
@@ -189,7 +194,7 @@ public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEven
 
         guacRecipe.setNotes(guacNotes);
 
-        //very redundent - could add helper method, and make this simpler
+
         guacRecipe.addIngredient(new Ingredient("ripe avocados", new BigDecimal(2), eachUom));
         guacRecipe.addIngredient(new Ingredient("Kosher salt", new BigDecimal(".5"), teapoonUom));
         guacRecipe.addIngredient(new Ingredient("fresh lime juice or lemon juice", new BigDecimal(2), tableSpoonUom));
@@ -206,7 +211,7 @@ public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEven
         guacRecipe.setServings(4);
         guacRecipe.setSource("Simply Recipes");
 
-        //add to return list
+        //save to return list
         recipes.add(guacRecipe);
 
         //Yummy Tacos
@@ -270,5 +275,17 @@ public class RecipeBootstrap implements ApplicationListener<ContextRefreshedEven
 
         recipes.add(tacosRecipe);
         return recipes;
+    }
+
+    private void setIngredientsRecipeIds() {
+        Iterable<Recipe> recipes = recipeRepository.findAll();
+        for (Recipe recipe: recipes) {
+            Set<Ingredient> ingredients = recipe.getIngredients();
+            for (Ingredient ingredient : ingredients) {
+                ingredient.setRecipeId(recipe.getId());
+                ingredientReactiveRepository.save(ingredient);
+            }
+        }
+        recipeRepository.saveAll(recipes);
     }
 }

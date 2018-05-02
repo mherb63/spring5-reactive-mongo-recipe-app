@@ -39,6 +39,7 @@ public class Recipe {
 
     public Recipe addIngredient(Ingredient ingredient){
         this.ingredients.add(ingredient);
+        ingredient.setRecipeId(this.id);
         return this;
     }
 }
