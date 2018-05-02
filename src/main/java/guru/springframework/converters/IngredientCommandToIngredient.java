@@ -33,6 +33,7 @@ public class IngredientCommandToIngredient implements Converter<IngredientComman
             Recipe recipe = new Recipe();
             recipe.setId(source.getRecipeId());
             recipe.addIngredient(ingredient);
+            ingredient.setRecipeId(source.getRecipeId());
         }
 
         ingredient.setAmount(source.getAmount());
